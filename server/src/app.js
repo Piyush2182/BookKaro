@@ -7,6 +7,8 @@ const app = express();
 app.use(cors()); // Doosre origins (React frontend) ko access dena
 app.use(express.json()); // Aane wale body data ko JSON object banana
 
+app.use('/api/businesses', businessRoutes);
+
 // System Health Route
 app.get("/api/health", (req, res) => {
   res.status(200).json({
