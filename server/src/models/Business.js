@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const businessSchema = new mongoose.Schema(
   {
@@ -35,12 +36,27 @@ const businessSchema = new mongoose.Schema(
       type: String,
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
+      select: false,
     },
   },
   {
     timestamps: true, // Automatically creates createdAt and updatedAt
   },
 );
+
+businessSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) {
+    return next();
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});
+
+// Instance method: password match karne ke liye
+businessSchema.methods.matchPassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
 
 // Mongoose ko bolte hain is schema se ek 'Business' collection create kare
 const Business = mongoose.model("Business", businessSchema);

@@ -1,13 +1,17 @@
 const express = require("express");
 const cors = require("cors");
 
+const businessRoutes = require("./routes/businessRoutes");
+const serviceRoutes = require("./routes/serviceRoutes");
+
 const app = express();
 
 // Middlewares: Bahar se aane wale data ke rules
 app.use(cors()); // Doosre origins (React frontend) ko access dena
 app.use(express.json()); // Aane wale body data ko JSON object banana
 
-app.use('/api/businesses', businessRoutes);
+app.use("/api/businesses", businessRoutes);
+app.use("/api/services", serviceRoutes);
 
 // System Health Route
 app.get("/api/health", (req, res) => {

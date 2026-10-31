@@ -1,8 +1,11 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { registerBusiness } = require('../controllers/businessController');
+const {
+  registerBusiness,
+  loginBusiness,
+} = require("../controllers/businessController");
 
-// Jab bhi koi POST request aayegi '/' par, registerBusiness function chalega
-router.post('/', registerBusiness);
+router.post("/", registerBusiness);
+router.post("/login", loginBusiness);
 
 module.exports = router;
