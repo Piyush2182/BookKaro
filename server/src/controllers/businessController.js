@@ -37,6 +37,8 @@ const registerBusiness = async (req, res) => {
       password,
     });
 
+    const token = business.generateAuthToken();
+
     res.status(201).json({
       success: true,
       message: "Business registered Successfully!",
@@ -45,6 +47,7 @@ const registerBusiness = async (req, res) => {
         name: business.name,
         slug: business.slug,
         email: business.email,
+        token,
       },
     });
   } catch (error) {
@@ -94,6 +97,8 @@ const loginBusiness = async (req, res) => {
       });
     }
 
+    const token = business.generateAuthToken();
+
     // 4. Send success response
     res.status(200).json({
       success: true,
@@ -103,6 +108,7 @@ const loginBusiness = async (req, res) => {
         name: business.name,
         slug: business.slug,
         email: business.email,
+        token,
       },
     });
   } catch (error) {
