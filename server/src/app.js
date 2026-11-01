@@ -3,6 +3,7 @@ const cors = require("cors");
 
 const businessRoutes = require("./routes/businessRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
+const bookingRoutes = require("./routes/bookingRoutes");
 
 const app = express();
 
@@ -12,6 +13,7 @@ app.use(express.json()); // Aane wale body data ko JSON object banana
 
 app.use("/api/businesses", businessRoutes);
 app.use("/api/services", serviceRoutes);
+app.use("/api/bookings", bookingRoutes);
 
 // System Health Route
 app.get("/api/health", (req, res) => {
