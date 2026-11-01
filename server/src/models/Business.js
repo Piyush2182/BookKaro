@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const businessSchema = new mongoose.Schema(
   {
@@ -56,6 +57,17 @@ businessSchema.pre("save", async function (next) {
 // Instance method: password match karne ke liye
 businessSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// Instance method: JWT Token generate karne ke liye
+businessSchema.methods.generateAuthToken = function () {
+  return jwt.sign(
+    { id: this._id }, // Payload: Token ke andar salon ki _id pack kardi
+    process.env.JWT_SECRET, // Secret key jo signature banayegi
+    {
+      expiresIn: process.env.JWT_EXPIRE || "30d", // Expiry time
+    },
+  );
 };
 
 // Mongoose ko bolte hain is schema se ek 'Business' collection create kare

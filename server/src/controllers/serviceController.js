@@ -2,15 +2,16 @@ const Service = require("../models/Service");
 
 const addService = async (req, res) => {
   try {
-    const { name, price, durationInMinutes, businessId } = req.body;
+    const { name, price, durationInMinutes } = req.body;
 
     // 1. Validation check
-    if (!name || !price || !durationInMinutes || !businessId) {
+    if (!name || !price || !durationInMinutes) {
       return res.status(400).json({
         success: false,
         message: "Please provide all required fields",
       });
     }
+    const businessId=req.business._id;
 
     // 2. Create document using the Model
     const newService = await Service.create({
@@ -45,4 +46,3 @@ const addService = async (req, res) => {
 module.exports = {
   addService,
 };
-
