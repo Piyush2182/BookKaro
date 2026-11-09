@@ -1,6 +1,7 @@
 const Service = require("../models/Service");
 
 // 1. ADD SERVICE (Already exists)
+// 1. ADD SERVICE (Duplicate check ke sath)
 const addService = async (req, res) => {
   try {
     const { name, price, durationInMinutes } = req.body;
@@ -14,10 +15,25 @@ const addService = async (req, res) => {
     }
 
     const businessId = req.business._id;
+    const trimmedName = name.trim();
+
+    // 🔍 DUPLICATE CHECK: Kya is salon me is naam ki service pehle se hai?
+    // Case-insensitive regex: "haircut" aur "Haircut" dono match honge
+    const existingService = await Service.findOne({
+      businessId,
+      name: { $regex: new RegExp(`^${trimmedName}$`, "i") },
+    });
+
+    if (existingService) {
+      return res.status(400).json({
+        success: false,
+        message: `Service "${trimmedName}" already exists in your salon catalog!`,
+      });
+    }
 
     const service = await Service.create({
       businessId,
-      name,
+      name: trimmedName,
       price,
       durationInMinutes,
     });

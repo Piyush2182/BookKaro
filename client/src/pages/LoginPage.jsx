@@ -1,7 +1,9 @@
 import { useState } from "react";
 import API from "../api/axiosInstance";
+import { useNavigate } from "react-router-dom";
 
 function LoginPage() {
+  const navigate = useNavigate();
   // 1. Form inputs ke liye state banayi
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,8 +28,8 @@ function LoginPage() {
       console.log("Full Server Response:", response.data);
 
       // Dono formats handle karega (chahe response.data.token ho ya response.data.data.token)
-      const token = response.data.token || response.data.data?.token;
-      const name = response.data.name || response.data.data?.name;
+      const token = response.data.data.token;
+      const name = response.data.data.name;
 
       if (!token) {
         throw new Error("Token not found in server response");
@@ -38,6 +40,7 @@ function LoginPage() {
 
       localStorage.setItem("businessName", name);
       alert(`Welcome back, ${name || "Salon"}!`);
+      navigate("/dashboard");
       console.log("Logged in successfully. Token saved:", token);
     } catch (err) {
       console.error("Login Error details:", err);
