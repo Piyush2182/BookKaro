@@ -2,12 +2,11 @@ const express = require("express");
 const router = express.Router();
 const {
   createBooking,
-  getSalonBookings,
+  getBusySlotsByDate,
 } = require("../controllers/bookingController");
-const { protectBusiness } = require("../middlewares/authMiddleware");
 
-// Dono routes protectBusiness guard ke peeche
-router.post("/", protectBusiness, createBooking);
-router.get("/", protectBusiness, getSalonBookings);
+// Public endpoints (Customer booking ke liye token ki zaroorat nahi)
+router.post("/", createBooking);
+router.get("/busy-slots", getBusySlotsByDate);
 
 module.exports = router;

@@ -1,18 +1,48 @@
 const Booking = require("../models/Booking");
 const Service = require("../models/Service");
-const {
-  parseTimeToMinutes,
-  formatMinutesToTime,
-} = require("../utils/timeHelpers");
 
-// 1. CREATE BOOKING (Lean & Direct)
+// Helper: "10:30 AM" ko minutes me convert karne ke liye
+const timeToMinutes = (timeStr) => {
+  const [time, modifier] = timeStr.split(" ");
+  let [hours, minutes] = time.split(":").map(Number);
+
+  if (modifier === "PM" && hours < 12) hours += 12;
+  if (modifier === "AM" && hours === 12) hours = 0;
+
+  return hours * 60 + minutes;
+};
+
+// Helper: minutes ko "11:15 AM" format me convert karne ke liye
+const minutesToTime = (totalMinutes) => {
+  let hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const modifier = hours >= 12 ? "PM" : "AM";
+
+  hours = hours % 12 || 12;
+  const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+
+  return `${hours}:${formattedMinutes} ${modifier}`;
+};
+
+// 1. CREATE BOOKING (Multiple Services Support)
+// @route   POST /api/bookings
 const createBooking = async (req, res) => {
   try {
-    const { serviceId, customerName, customerPhone, bookingDate, startTime } =
-      req.body;
+    const {
+      businessId,
+      serviceIds, // Array: ["id1", "id2"]
+      customerName,
+      customerPhone,
+      customerEmail,
+      bookingDate,
+      startTime, // e.g. "10:30 AM"
+    } = req.body;
 
     if (
-      !serviceId ||
+      !businessId ||
+      !serviceIds ||
+      !Array.isArray(serviceIds) ||
+      serviceIds.length === 0 ||
       !customerName ||
       !customerPhone ||
       !bookingDate ||
@@ -20,89 +50,117 @@ const createBooking = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Please provide all required fields",
+        message:
+          "Please provide all required fields including at least one service",
       });
     }
 
-    // A. Service dhoondo aur duration nikalo
-    const service = await Service.findById(serviceId);
-    if (!service) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Service not found" });
+    // 1. Database se saari selected services uthao
+    const services = await Service.find({ _id: { $in: serviceIds } });
+
+    if (services.length !== serviceIds.length) {
+      return res.status(404).json({
+        success: false,
+        message: "One or more selected services not found",
+      });
     }
 
-    const businessId = req.business._id;
+    // 2. Total duration aur total price calculate karo
+    const totalDurationInMinutes = services.reduce(
+      (sum, s) => sum + s.durationInMinutes,
+      0,
+    );
+    const totalPrice = services.reduce((sum, s) => sum + s.price, 0);
 
-    // B. Time calculations (AM/PM -> Minutes -> End Time)
-    const startMinutes = parseTimeToMinutes(startTime);
-    const endMinutes = startMinutes + service.durationInMinutes;
-    const endTime = formatMinutesToTime(endMinutes);
+    // 3. Start aur End minutes calculate karo
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = startMinutes + totalDurationInMinutes;
+    const endTime = minutesToTime(endMinutes);
 
-    // C. Overlap Check (Direct number comparison)
-    // Formula: existing.start < new.end AND existing.end > new.start
-    const conflictingBooking = await Booking.findOne({
+    // Date normalize karo (time component hatao)
+    const normalizedDate = new Date(bookingDate);
+    normalizedDate.setHours(0, 0, 0, 0);
+
+    // 4. OVERLAP CONFLICT CHECK
+    const existingConflict = await Booking.findOne({
       businessId,
-      bookingDate: new Date(bookingDate),
+      bookingDate: normalizedDate,
       status: { $ne: "cancelled" },
       startMinutes: { $lt: endMinutes },
       endMinutes: { $gt: startMinutes },
     });
 
-    if (conflictingBooking) {
-      return res.status(400).json({
+    if (existingConflict) {
+      return res.status(409).json({
         success: false,
-        message: `Slot unavailable! Overlaps with an existing booking (${conflictingBooking.startTime} - ${conflictingBooking.endTime})`,
+        message: `This slot conflicts with an existing booking (${existingConflict.startTime} to ${existingConflict.endTime}). Please select another time.`,
       });
     }
 
-    // D. Save Booking
+    // 5. Booking save karo
     const booking = await Booking.create({
       businessId,
-      serviceId,
+      services: serviceIds,
+      totalPrice,
+      totalDurationInMinutes,
       customerName,
       customerPhone,
-      bookingDate: new Date(bookingDate),
+      customerEmail: customerEmail || "",
+      bookingDate: normalizedDate,
       startTime,
       endTime,
       startMinutes,
       endMinutes,
-      bookingSource: "walk-in",
       status: "confirmed",
+      bookingSource: "online",
     });
 
     res.status(201).json({
       success: true,
-      message: "Booking confirmed successfully!",
+      message: "Appointment booked successfully!",
       data: booking,
     });
   } catch (error) {
     console.error("Booking creation error:", error.message);
     res.status(500).json({
       success: false,
-      message: "Server error, could not create booking",
+      message: "Server error while creating booking",
       error: error.message,
     });
   }
 };
 
-// 2. GET SALON BOOKINGS (Dashboard view)
-const getSalonBookings = async (req, res) => {
+// 2. GET BUSY SLOTS BY DATE
+// @route   GET /api/bookings/busy-slots?businessId=...&date=...
+const getBusySlotsByDate = async (req, res) => {
   try {
-    const bookings = await Booking.find({ businessId: req.business._id })
-      .populate("serviceId", "name price durationInMinutes")
-      .sort({ bookingDate: 1, startMinutes: 1 });
+    const { businessId, date } = req.query;
+
+    if (!businessId || !date) {
+      return res.status(400).json({
+        success: false,
+        message: "businessId and date are required query parameters",
+      });
+    }
+
+    const searchDate = new Date(date);
+    searchDate.setHours(0, 0, 0, 0);
+
+    const bookings = await Booking.find({
+      businessId,
+      bookingDate: searchDate,
+      status: { $ne: "cancelled" },
+    }).select("startTime endTime startMinutes endMinutes");
 
     res.status(200).json({
       success: true,
-      count: bookings.length,
       data: bookings,
     });
   } catch (error) {
-    console.error("Fetch bookings error:", error.message);
+    console.error("Fetch busy slots error:", error.message);
     res.status(500).json({
       success: false,
-      message: "Server error, could not fetch bookings",
+      message: "Could not fetch busy slots",
       error: error.message,
     });
   }
@@ -110,5 +168,5 @@ const getSalonBookings = async (req, res) => {
 
 module.exports = {
   createBooking,
-  getSalonBookings,
+  getBusySlotsByDate,
 };

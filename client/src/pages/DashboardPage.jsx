@@ -4,7 +4,10 @@ import API from "../api/axiosInstance";
 
 function DashboardPage() {
   const navigate = useNavigate();
+
+  // Local storage values ko component ke andar padho
   const salonName = localStorage.getItem("businessName") || "Salon Owner";
+  const salonSlug = localStorage.getItem("businessSlug");
 
   // State
   const [services, setServices] = useState([]);
@@ -70,12 +73,11 @@ function DashboardPage() {
       `Are you sure you want to delete "${serviceName}"?`,
     );
 
-    if (!isConfirmed) return; // User ne Cancel dabaya toh function exit ho jayega
+    if (!isConfirmed) return;
 
     try {
       setError("");
       await API.delete(`/services/${serviceId}`);
-      // Successful delete ke baad catalog refresh karo
       fetchServices();
     } catch (err) {
       console.error("Delete error:", err);
@@ -83,10 +85,11 @@ function DashboardPage() {
     }
   };
 
-  // 4. Logout
+  // 4. Logout (Clean up all auth data)
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("businessName");
+    localStorage.removeItem("businessSlug");
     navigate("/login");
   };
 
@@ -117,20 +120,42 @@ function DashboardPage() {
             Manage your salon catalog and bookings
           </p>
         </div>
-        <button
-          onClick={handleLogout}
-          style={{
-            backgroundColor: "#ef4444",
-            color: "#fff",
-            border: "none",
-            padding: "8px 16px",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontWeight: "bold",
-          }}
-        >
-          Logout
-        </button>
+
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          {salonSlug && (
+            <a
+              href={`/salon/${salonSlug}`}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                backgroundColor: "#0f766e",
+                color: "#fff",
+                textDecoration: "none",
+                padding: "8px 14px",
+                borderRadius: "6px",
+                fontWeight: "600",
+                fontSize: "14px",
+              }}
+            >
+              🔗 View Public Page
+            </a>
+          )}
+
+          <button
+            onClick={handleLogout}
+            style={{
+              backgroundColor: "#ef4444",
+              color: "#fff",
+              border: "none",
+              padding: "8px 16px",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* Error Banner */}
@@ -284,7 +309,6 @@ function DashboardPage() {
                     ₹{srv.price}
                   </span>
 
-                  {/* Red Delete Button */}
                   <button
                     onClick={() => handleDeleteService(srv._id, srv.name)}
                     style={{

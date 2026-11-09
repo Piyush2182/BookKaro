@@ -1,5 +1,5 @@
 const Business = require("../models/Business");
-
+const Service = require("../models/Service");
 // @desc    Register a new business
 // @route   POST /api/businesses
 // @access  Public
@@ -120,8 +120,48 @@ const loginBusiness = async (req, res) => {
     });
   }
 };
+// @desc    Get public salon details & active services by slug
+// @route   GET /api/businesses/public/:slug
+// @access  Public (No Token Required)
+const getSalonBySlug = async (req, res) => {
+  try {
+    const { slug } = req.params;
+
+    // 1. Slug ke through business dhoondo (password ko chhod kar)
+    const business = await Business.findOne({
+      slug: slug.toLowerCase(),
+    }).select("-password");
+
+    if (!business) {
+      return res.status(404).json({
+        success: false,
+        message: "Salon not found",
+      });
+    }
+
+    // 2. Is specific business ki saari active services fetch karo
+    const services = await Service.find({ businessId: business._id });
+
+    // 3. Client ko business info + services ek sath return karo
+    res.status(200).json({
+      success: true,
+      data: {
+        business,
+        services,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching salon by slug:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Server error, could not fetch salon details",
+      error: error.message,
+    });
+  }
+};
 
 module.exports = {
   registerBusiness,
   loginBusiness,
+  getSalonBySlug,
 };

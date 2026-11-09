@@ -7,18 +7,30 @@ const bookingSchema = new mongoose.Schema(
       ref: "Business",
       required: true,
     },
-    serviceId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Service",
+    // Multiple services support (Array of Service ObjectIds)
+    services: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Service",
+        required: true,
+      },
+    ],
+    // Total price calculated from all selected services
+    totalPrice: {
+      type: Number,
       required: true,
     },
-    // Optional: Agar online user hai toh ID aayegi, offline hai toh null rahega
+    // Total time (sum of duration of all selected services)
+    totalDurationInMinutes: {
+      type: Number,
+      required: true,
+    },
+    // Optional: Agar online registered user hai toh ID, warna null
     customerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
     },
-    // Customer details dono case me rahengi (contact karne ke liye)
     customerName: {
       type: String,
       required: [true, "Customer name is required"],
@@ -59,7 +71,7 @@ const bookingSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["pending", "confirmed", "cancelled", "completed"],
-      default: "confirmed", // Walk-in usually direct confirmed hota hai
+      default: "confirmed",
     },
     bookingSource: {
       type: String,

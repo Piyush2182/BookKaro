@@ -30,15 +30,15 @@ function LoginPage() {
       // Dono formats handle karega (chahe response.data.token ho ya response.data.data.token)
       const token = response.data.data.token;
       const name = response.data.data.name;
-
+      const slug = response.data.data.slug;
       if (!token) {
         throw new Error("Token not found in server response");
       }
 
       // Token aur salon details ko localStorage me save karo
       localStorage.setItem("token", token);
-
       localStorage.setItem("businessName", name);
+      localStorage.setItem("businessSlug", slug);
       alert(`Welcome back, ${name || "Salon"}!`);
       navigate("/dashboard");
       console.log("Logged in successfully. Token saved:", token);

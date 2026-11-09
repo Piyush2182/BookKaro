@@ -15,6 +15,7 @@ app.use("/api/businesses", businessRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/bookings", bookingRoutes);
 
+
 // System Health Route
 app.get("/api/health", (req, res) => {
   res.status(200).json({
