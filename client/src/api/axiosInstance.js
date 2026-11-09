@@ -1,4 +1,5 @@
 import axios from "axios";
+
 const API = axios.create({
   baseURL: "http://localhost:5000/api",
 });
@@ -6,9 +7,18 @@ const API = axios.create({
 API.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
+
+    // Debugging ke liye: console me print karega
+    console.log(
+      "Interceptor checking token:",
+      token ? "Token Found!" : "NO TOKEN IN STORAGE!",
+    );
+
     if (token) {
-      config.headers.Authorization = " Bearer ${token}";
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
   },
   (error) => {
