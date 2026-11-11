@@ -132,6 +132,19 @@ function LoginPage() {
           {loading ? "Logging in..." : "Login to Salon"}
         </button>
       </form>
+      <p
+        style={{
+          textAlign: "center",
+          fontSize: "14px",
+          color: "#64748b",
+          marginTop: "16px",
+        }}
+      >
+        New salon owner?{" "}
+        <Link to="/register" style={{ color: "#0f766e", fontWeight: "600" }}>
+          Register your salon
+        </Link>
+      </p>
     </div>
   );
 }
