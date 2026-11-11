@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import API from "../api/axiosInstance";
 
-// 10:00 AM se 7:00 PM tak har 30 min ke standard slots
 const TIME_SLOTS = [
   "10:00 AM",
   "10:30 AM",
@@ -25,8 +24,8 @@ const TIME_SLOTS = [
   "07:00 PM",
 ];
 
-// Helper: AM/PM string ko minutes me badalna (Frontend conflict check ke liye)
 const timeToMinutes = (timeStr) => {
+  if (!timeStr) return 0;
   const [time, modifier] = timeStr.split(" ");
   let [hours, minutes] = time.split(":").map(Number);
   if (modifier === "PM" && hours < 12) hours += 12;
@@ -42,7 +41,6 @@ function SalonPublicPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Cart selection state
   const [selectedServices, setSelectedServices] = useState([]);
 
   // Modal & Booking form states
@@ -76,19 +74,20 @@ function SalonPublicPage() {
   }, [slug]);
 
   // 2. Fetch Busy Slots jab bhi Customer date change kare
-  useEffect(() => {
-    const fetchBusySlots = async () => {
-      if (!salon || !bookingDate) return;
-      try {
-        const res = await API.get(
-          `/bookings/busy-slots?businessId=${salon._id}&date=${bookingDate}`,
-        );
-        setBusySlots(res.data.data || []);
-      } catch (err) {
-        console.error("Fetch busy slots error:", err);
-      }
-    };
+  const fetchBusySlots = async () => {
+    if (!salon || !bookingDate) return;
+    try {
+      const res = await API.get(
+        `/bookings/busy-slots?businessId=${salon._id}&date=${bookingDate}`,
+      );
+      console.log("Customer fetched busy slots:", res.data.data);
+      setBusySlots(res.data.data || []);
+    } catch (err) {
+      console.error("Fetch busy slots error:", err);
+    }
+  };
 
+  useEffect(() => {
     fetchBusySlots();
   }, [bookingDate, salon]);
 
@@ -113,13 +112,15 @@ function SalonPublicPage() {
     0,
   );
 
-  // Check if a specific time slot overlaps with any existing booking
+  // Check if a specific time slot overlaps with any busy slot
   const isSlotDisabled = (slot) => {
     const slotStart = timeToMinutes(slot);
-    const slotEnd = slotStart + totalDuration;
+    // Agar duration 0 hai toh default 30 mins assume karo conflict check ke liye
+    const durationToCheck = totalDuration > 0 ? totalDuration : 30;
+    const slotEnd = slotStart + durationToCheck;
 
     return busySlots.some((busy) => {
-      // Overlap formula: newStart < busyEnd && newEnd > busyStart
+      // Overlap condition: slotStart < busyEnd && slotEnd > busyStart
       return slotStart < busy.endMinutes && slotEnd > busy.startMinutes;
     });
   };
@@ -143,9 +144,12 @@ function SalonPublicPage() {
         customerPhone,
         bookingDate,
         startTime: selectedSlot,
+        bookingSource: "online",
       });
 
       setBookingSuccess(res.data.data);
+      // Success ke baad busy slots refresh karo taaki booked slot red ho jaye
+      fetchBusySlots();
     } catch (err) {
       console.error("Booking error:", err);
       setModalError(
@@ -188,7 +192,7 @@ function SalonPublicPage() {
         fontFamily: "sans-serif",
       }}
     >
-      {/* Salon Header Banner */}
+      {/* Salon Header */}
       <div
         style={{
           backgroundColor: "#0f766e",
@@ -515,7 +519,7 @@ function SalonPublicPage() {
                             disabled={disabled}
                             onClick={() => setSelectedSlot(slot)}
                             style={{
-                              padding: "8px 4px",
+                              padding: "10px 4px",
                               borderRadius: "6px",
                               fontSize: "13px",
                               fontWeight: "600",
@@ -529,16 +533,17 @@ function SalonPublicPage() {
                                   ? "#0f766e"
                                   : "#f8fafc",
                               color: disabled
-                                ? "#991b1b"
+                                ? "#dc2626"
                                 : isChosen
                                   ? "#fff"
                                   : "#1e293b",
                               textDecoration: disabled
                                 ? "line-through"
                                 : "none",
+                              opacity: disabled ? 0.75 : 1,
                             }}
                           >
-                            {slot}
+                            {slot} {disabled ? "🚫" : ""}
                           </button>
                         );
                       })}
